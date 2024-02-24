@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -20,6 +21,10 @@ public class TaskStateDto {
     @NotNull
     @JsonProperty("created_at")
     Instant createdAt = Instant.now();
+    @JsonProperty("left_task_state_id")
+    Long leftTaskStateId;
+    @JsonProperty("right_task_state_id")
+    Long rightTaskStateId;
     @NotNull
-    Long ordinal;
+    List<TaskDto> tasks;
 }

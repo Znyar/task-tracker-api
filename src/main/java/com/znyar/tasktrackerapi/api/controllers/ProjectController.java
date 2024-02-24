@@ -1,9 +1,9 @@
 package com.znyar.tasktrackerapi.api.controllers;
 
+import com.znyar.tasktrackerapi.api.controllers.helpers.ControllerHelper;
 import com.znyar.tasktrackerapi.api.dto.AckDto;
 import com.znyar.tasktrackerapi.api.dto.ProjectDto;
 import com.znyar.tasktrackerapi.api.exceptions.BadRequestException;
-import com.znyar.tasktrackerapi.api.exceptions.NotFoundException;
 import com.znyar.tasktrackerapi.api.factories.ProjectDtoFactory;
 import com.znyar.tasktrackerapi.store.entities.ProjectEntity;
 import com.znyar.tasktrackerapi.store.repositories.ProjectRepository;
@@ -24,8 +24,13 @@ import java.util.stream.Stream;
 @Transactional
 @RestController
 public class ProjectController {
-    ProjectDtoFactory projectDtoFactory;
+
     ProjectRepository projectRepository;
+
+    ProjectDtoFactory projectDtoFactory;
+
+    ControllerHelper controllerHelper;
+
     public static final String FETCH_PROJECTS = "/api/projects";
     public static final String DELETE_PROJECT = "/api/projects/{project_id}";
     public static final String CREATE_OR_UPDATE_PROJECT = "/api/projects";
@@ -58,7 +63,7 @@ public class ProjectController {
         }
 
         final ProjectEntity project = optionalProjectId
-                .map(this::getProjectOrThrowException)
+                .map(controllerHelper::getProjectOrThrowException)
                 .orElseGet(() -> ProjectEntity.builder().build());
 
         optionalProjectName
@@ -82,22 +87,9 @@ public class ProjectController {
 
     @DeleteMapping(DELETE_PROJECT)
     public AckDto deleteProject(@PathVariable("project_id") Long projectId) {
-        getProjectOrThrowException(projectId);
+        controllerHelper.getProjectOrThrowException(projectId);
         projectRepository.deleteById(projectId);
         return AckDto.makeDefault(true);
-    }
-
-    private ProjectEntity getProjectOrThrowException(Long projectId) {
-        return projectRepository
-                .findById(projectId)
-                .orElseThrow(() ->
-                        new NotFoundException(
-                                String.format(
-                                        "Project with \"%s\" doesn`t exist",
-                                        projectId
-                                )
-                        )
-                );
     }
 
 }
