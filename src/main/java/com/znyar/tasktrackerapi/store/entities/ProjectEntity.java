@@ -18,7 +18,7 @@ import java.util.List;
 @Builder
 public class ProjectEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     @Column(unique = true)
     String name;
@@ -26,7 +26,7 @@ public class ProjectEntity {
     Instant createdAt = Instant.now();
     @Builder.Default
     Instant updatedAt = Instant.now();
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name="project_id", referencedColumnName = "id")
     List<TaskStateEntity> taskStates = new ArrayList<>();
 }

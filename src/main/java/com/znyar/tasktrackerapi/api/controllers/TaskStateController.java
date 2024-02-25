@@ -34,7 +34,6 @@ public class TaskStateController {
     public static final String GET_TASK_STATES = "/api/projects/{project_id}/task_states";
     public static final String CREATE_TASK_STATE = "/api/projects/{project_id}/task_states";
     public static final String UPDATE_TASK_STATE = "/api/task_states/{task_state_id}";
-    public static final String CHANGE_TASK_STATE_POSITION = "/api/task_states/{task_state_id}/position/change";
     public static final String DELETE_TASK_STATE = "/api/task_states/{task_state_id}";
 
 
@@ -118,79 +117,6 @@ public class TaskStateController {
         return taskStateDtoFactory.makeTaskStateDto(taskState);
     }
 
-    @PatchMapping(CHANGE_TASK_STATE_POSITION)
-    public TaskStateDto changeTaskStatePosition(
-            @PathVariable("task_state_id") Long taskStateId,
-            @RequestParam(value = "left_task_state_id", required = false) Optional<Long> optionalLeftTaskStateId) {
-
-        TaskStateEntity changingTaskState = getTaskStateOrThrowException(taskStateId);
-
-        ProjectEntity project = changingTaskState.getProject();
-
-        Optional<Long> optionalOldLeftTaskStateId = changingTaskState
-                .getLeftTaskState()
-                .map(TaskStateEntity::getId);
-
-        if (optionalOldLeftTaskStateId.equals(optionalLeftTaskStateId)) {
-            return taskStateDtoFactory.makeTaskStateDto(changingTaskState);
-        }
-
-        Optional<TaskStateEntity> optionalNewLeftTaskState = optionalLeftTaskStateId
-                .map(leftTaskStateId -> {
-
-                    if (taskStateId.equals(leftTaskStateId)) {
-                        throw new BadRequestException("Left task state id equals changing task state id");
-                    }
-
-                    TaskStateEntity leftTaskStateEntity = getTaskStateOrThrowException(leftTaskStateId);
-
-                    if (!project.getId().equals(leftTaskStateEntity.getProject().getId())) {
-                        throw new BadRequestException("Task state position can be changed within the same project");
-                    }
-                    return leftTaskStateEntity;
-                });
-
-        Optional<TaskStateEntity> optionalNewRightTaskState;
-        if (optionalNewLeftTaskState.isEmpty()) {
-
-            optionalNewRightTaskState = project
-                    .getTaskStates()
-                    .stream()
-                    .filter(anotherTaskState -> anotherTaskState.getLeftTaskState().isEmpty())
-                    .findAny();
-
-        } else {
-            optionalNewRightTaskState = optionalNewLeftTaskState
-                    .get()
-                    .getRightTaskState();
-        }
-
-        replaceOldTaskStatePosition(changingTaskState);
-
-        if (optionalNewLeftTaskState.isPresent()) {
-            TaskStateEntity newLeftTaskState = optionalNewLeftTaskState.get();
-            newLeftTaskState.setRightTaskState(changingTaskState);
-            changingTaskState.setLeftTaskState(newLeftTaskState);
-        } else {
-            changingTaskState.setLeftTaskState(null);
-        }
-
-        if (optionalNewRightTaskState.isPresent()) {
-            TaskStateEntity newRightTaskState = optionalNewRightTaskState.get();
-            newRightTaskState.setLeftTaskState(changingTaskState);
-            changingTaskState.setRightTaskState(newRightTaskState);
-        } else {
-            changingTaskState.setRightTaskState(null);
-        }
-
-        changingTaskState = taskStateRepository.saveAndFlush(changingTaskState);
-
-        optionalNewLeftTaskState.ifPresent(taskStateRepository::saveAndFlush);
-        optionalNewRightTaskState.ifPresent(taskStateRepository::saveAndFlush);
-
-        return taskStateDtoFactory.makeTaskStateDto(changingTaskState);
-    }
-
     @DeleteMapping(DELETE_TASK_STATE)
     public AckDto deleteTaskState(@PathVariable("task_state_id") Long taskStateId) {
 
@@ -201,19 +127,24 @@ public class TaskStateController {
         return AckDto.makeDefault(true);
     }
 
-    private void replaceOldTaskStatePosition(TaskStateEntity changingTaskState) {
+    private void replaceOldTaskStatePosition(TaskStateEntity changeTaskState) {
 
-        Optional<TaskStateEntity> optionalOldLeftTaskState = changingTaskState.getLeftTaskState();
-        Optional<TaskStateEntity> optionalOldRightTaskState = changingTaskState.getRightTaskState();
+        Optional<TaskStateEntity> optionalOldLeftTaskState = changeTaskState.getLeftTaskState();
+        Optional<TaskStateEntity> optionalOldRightTaskState = changeTaskState.getRightTaskState();
 
         optionalOldLeftTaskState
                 .ifPresent(it -> {
+
                     it.setRightTaskState(optionalOldRightTaskState.orElse(null));
+
                     taskStateRepository.saveAndFlush(it);
                 });
+
         optionalOldRightTaskState
                 .ifPresent(it -> {
+
                     it.setLeftTaskState(optionalOldLeftTaskState.orElse(null));
+
                     taskStateRepository.saveAndFlush(it);
                 });
     }

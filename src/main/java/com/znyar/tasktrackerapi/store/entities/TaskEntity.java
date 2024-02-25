@@ -5,7 +5,6 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
-import java.util.List;
 
 @Entity
 @Table(name = "task")
@@ -17,7 +16,7 @@ import java.util.List;
 @Builder
 public class TaskEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     String name;
     Long ordinal;

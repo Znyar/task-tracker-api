@@ -19,7 +19,7 @@ import java.util.Optional;
 @Builder
 public class TaskStateEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     String name;
     @OneToOne
@@ -31,7 +31,7 @@ public class TaskStateEntity {
     @ManyToOne
     ProjectEntity project;
     @Builder.Default
-    @OneToMany
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name="task_state_id", referencedColumnName = "id")
     List<TaskEntity> tasks = new ArrayList<>();
 
